@@ -1,103 +1,167 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import useDebounce from "./utils/useDebounce";
+
+type Job = {
+  id?: number;
+  title: string;
+  company: string;
+  location: string;
+  stack: string[];
+  description: string;
+};
+
+type FormField = "title" | "company" | "location" | "stack" | "description";
+
+async function fetchJobs() {
+  const res = await fetch("/api/jobs");
+  return res.json();
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [form, setForm] = useState<{
+    title: string;
+    company: string;
+    location: string;
+    stack: string; // <- change from string[] to string
+    description: string;
+  }>({
+    title: "",
+    company: "",
+    location: "",
+    stack: "",
+    description: "",
+  });
+  const debouncedSearch = useDebounce(search, 300);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const { data: jobs = [], isLoading } = useQuery({
+    queryKey: ["jobs"],
+    queryFn: fetchJobs,
+  });
+
+  const createJob = useMutation({
+    mutationFn: async (newJob: Job) => {
+      const res = await fetch("/api/jobs", {
+        method: "POST",
+        body: JSON.stringify(newJob),
+      });
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["jobs"] }),
+  });
+
+  const deleteJob = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch("/api/jobs", {
+        method: "DELETE",
+        body: JSON.stringify({ id }),
+      });
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["jobs"] }),
+  });
+
+  const filteredJobs = jobs.filter((job: Job) =>
+    job.title.toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
+
+  const handleCreate = () => {
+    if (
+      !form.title ||
+      !form.company ||
+      !form.location ||
+      !form.description ||
+      !form.stack
+    )
+      return;
+
+    createJob.mutate({
+      title: form.title,
+      company: form.company,
+      location: form.location,
+      description: form.description,
+      stack: form.stack.split(",").map((s) => s.trim()),
+    });
+
+    setForm({
+      title: "",
+      company: "",
+      location: "",
+      stack: "",
+      description: "",
+    });
+  };
+
+  const fields: FormField[] = [
+    "title",
+    "company",
+    "location",
+    "stack",
+    "description",
+  ];
+
+  return (
+    <>
+      <input
+        type="text"
+        placeholder="Search by job title..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full p-2 border rounded"
+      />
+
+      <div className="border p-4 rounded">
+        <h2 className="text-xl font-semibold mb-2">Add New Job</h2>
+        <div className="grid gap-2">
+          {fields.map((field) => (<div key={field} className="flex justify-between gap-4">
+          <label className="capitalize w-20">{field}</label>
+            <input
+              key={field}
+              value={form[field]}
+              onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+              className="border rounded p-1 flex-1"
+            /></div>
+           
+          ))}
+          <button
+            onClick={handleCreate}
+            className="bg-blue-600 text-white py-2 px-4 rounded cursor-pointer"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            Create
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+
+      <ul className="space-y-4">
+        {isLoading ? (
+          <p>Loading...</p>
+        ) : (
+          filteredJobs.map((job: Job) => (
+            <li key={job.id} className="border p-4 rounded shadow">
+              <Link
+                href={`/jobs/${job.id}`}
+                className="text-xl font-semibold text-blue-600"
+              >
+                {job.title}
+              </Link>
+              <p>
+                {job.company} • {job.location}
+              </p>
+              <p className="text-sm text-gray-500">{job.stack.join(", ")}</p>
+              <button
+                onClick={() => job.id && deleteJob.mutate(job.id)}
+                className="mt-2 text-sm text-red-600"
+              >
+                Delete
+              </button>
+            </li>
+          ))
+        )}
+      </ul>
+    </>
   );
 }
