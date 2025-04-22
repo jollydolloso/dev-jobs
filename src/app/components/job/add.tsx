@@ -1,9 +1,10 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { JobForm, JobFormData } from './job-form';
+import { JobForm } from './job-form';
+import { Job } from '@/types/models/Jobs';
 
-async function postJob(newJob: JobFormData) {
+async function postJob(newJob: Job) {
   const res = await fetch('/api/jobs', {
     method: 'POST',
     body: JSON.stringify(newJob),
@@ -22,11 +23,11 @@ export default function AddJob() {
     },
   });
 
-  const handleCreate = (data: JobFormData) => {
+  const handleCreate = async (data: Job) => {
     createJob.mutate({
       ...data,
     });
   };
 
-  return <JobForm onSubmit={handleCreate} />;
+  return <JobForm submit={handleCreate} />;
 }

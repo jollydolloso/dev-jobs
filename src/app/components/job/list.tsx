@@ -2,24 +2,16 @@
 
 import { useSearchJobs } from '@/context/SearchJobsContext';
 import { Job } from '@/types/models/Jobs';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { DeleteJob } from './delete';
 
 export default function JobList() {
-  const queryClient = useQueryClient();
-  const { filteredJobs, isLoading } = useSearchJobs();
-    const deleteJob = useMutation({
-      mutationFn: async (id: number) => {
-        const res = await fetch("/api/jobs", {
-          method: "DELETE",
-          body: JSON.stringify({ id }),
-        });
-        return res.json();
-      },
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["jobs"] }),
-    });
 
+  const { filteredJobs, isLoading } = useSearchJobs();
+  
   if (isLoading) return <p>Loading...</p>;
+
+  if (filteredJobs.length === 0) return
 
   return (
     <ul className="space-y-2">
@@ -35,12 +27,7 @@ export default function JobList() {
           {job.company} • {job.location}
         </p>
         <p className="text-sm text-gray-500">{job.stack.join(", ")}</p>
-        <button
-          onClick={() => job.id && deleteJob.mutate(job.id)}
-          className="mt-2 text-sm text-red-600"
-        >
-          Delete
-        </button>
+        {job.id && <DeleteJob id={job.id}/>}
       </li>
       ))}
     </ul>
