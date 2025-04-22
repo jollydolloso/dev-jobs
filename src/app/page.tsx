@@ -27,7 +27,7 @@ export default function Home() {
     title: string;
     company: string;
     location: string;
-    stack: string; // <- change from string[] to string
+    stack: string;
     description: string;
   }>({
     title: "",
