@@ -1,5 +1,5 @@
 
-import { jobs } from '@/app/data/jobs';
+import { jobs } from '@/data/jobs';
 import { notFound } from 'next/navigation';
 
 export default function JobPage({ params }: { params: { id: string } }) {

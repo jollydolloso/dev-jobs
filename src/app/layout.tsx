@@ -22,14 +22,16 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} max-w-3xl mx-auto p-6 space-y-6`}>
         <Providers>
-        <header className="flex gap-2 items-center text-blue-500 group h-10">
+          <header className="flex gap-2 items-center justify-between text-primary group h-10">
+            <div className="flex items-center justify-between w-[32%]">
               <SearchIcon className="size-8 group-hover:size-10 transition-all duration-75" />
               <Link href="/" className="text-3xl font-bold">
                 MyJob Hunt
               </Link>
-            </header>
+            </div>
             <AuthStatus />
-            {children}
+          </header>
+          {children}
         </Providers>
       </body>
     </html>
